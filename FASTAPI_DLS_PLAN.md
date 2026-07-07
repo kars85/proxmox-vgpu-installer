@@ -1,9 +1,17 @@
 # FastAPI-DLS Licensing Plan — support newer vGPU drivers (R570 → R595)
 
-**Status:** Proposed · **Owner:** kars85 · **Author:** Claude Fable 5
+**Status:** In progress — Phase A ✅ · Phase B ✅ · Phase C pending (needs R595 hardware)
+**Owner:** kars85 · **Author:** Claude Fable 5
 **Goal:** Make the self-hosted licensing path work reliably for vGPU **18.x/19.x**
 and the **20.x (R595)** branch your T4 host actually runs, and pin it into the
 `proxmox-vgpu-installer` v2.0 project reproducibly.
+
+**Progress log**
+- Phase A (commit `4066209`): forked both deps to GitHub, pinned as submodules
+  (`third_party/fastapi-dls @ 2.0.3`, `third_party/gridd-unlock-patcher @ 1.1`).
+- Phase B (commit `4f50481`): pinned the DLS image by digest, added a health
+  check, fixed the patcher URL, and automated the guest root-cert fetch + gridd
+  patch for R570/R580/R595. Smoke suite at 52 checks.
 
 ---
 
@@ -37,14 +45,14 @@ needs **no code change**; the work is integration + guest tooling + testing.
 
 ## 2. Current gaps in *our* project (`lib/licensing.sh`)
 
-| # | Gap | Fix |
-|---|-----|-----|
-| 1 | Image pinned to mutable tag `collinwebdesigns/fastapi-dls:2` (`:6`) | Pin to an immutable ref (`2.0.3` or `@sha256:...`), or our own built image. |
-| 2 | Wrong gridd-unlock-patcher URL: points at `oscar.krause/...` (`:176`) | Real repo is `vgpu/gridd-unlock-patcher`. Correct it. |
-| 3 | gridd-unlock-patcher is only *mentioned*, not automated | Fetch root cert from `/-/config/root-certificate`, run the patcher, in the guest scripts. |
-| 4 | Guest scripts don't fetch the DLS root certificate | Add `curl .../-/config/root-certificate` step for 18.x+ guests. |
-| 5 | No post-deploy health check of the container | Poll `https://<ip>:<port>/-/health` after `compose up`. |
-| 6 | No 20.x/R595 entry in our driver catalog guest licensing note | Add once tested. |
+| # | Gap | Fix | Status |
+|---|-----|-----|--------|
+| 1 | Image pinned to mutable tag `collinwebdesigns/fastapi-dls:2` | Pinned to `2.0.3@sha256:e5078363...` (multi-arch digest), env-overridable. | ✅ Phase B |
+| 2 | Wrong gridd-unlock-patcher URL (`oscar.krause/...`) | Corrected to `vgpu/gridd-unlock-patcher`; references the pinned fork. | ✅ Phase B |
+| 3 | gridd-unlock-patcher only *mentioned*, not automated | Guest script patches `nvidia-gridd` (`-g <gridd> -c <root.pem>`) when the binary is present. | ✅ Phase B |
+| 4 | Guest scripts don't fetch the DLS root certificate | Added `curl .../-/config/root-certificate` for R570+ guests. | ✅ Phase B |
+| 5 | No post-deploy health check of the container | Polls `https://<ip>:<port>/-/health` after `compose up`. | ✅ Phase B |
+| 6 | No 20.x/R595 entry in our driver catalog guest licensing note | Add once tested on hardware. | ⬜ Phase C |
 
 Already modern (no work): compose v2 (`docker compose`), no `version:` key, routable
 host-IP detection, TZ from `timedatectl`, port-conflict warning.
@@ -72,7 +80,7 @@ as a pinned image rather than vendoring its source.**
 
 ## 4. Phased plan
 
-### Phase A — Fork & clone (reproducible baseline)
+### Phase A — Fork & clone (reproducible baseline) — ✅ DONE (commit `4066209`)
 1. `gh repo fork https://git.collinwebdesigns.de/...` isn't possible (GitLab source);
    instead **mirror-push** to new GitHub repos:
    ```bash
@@ -95,16 +103,22 @@ as a pinned image rather than vendoring its source.**
    *(Alternative if submodules are unwanted: a `licensing/UPSTREAM.md` recording the
    pinned commit SHAs + image digest.)*
 - **Acceptance:** both forks exist on GitHub, mirror upstream, and are referenced at a
-  known-good pinned SHA from our repo.
+  known-good pinned SHA from our repo. ✅
+  - `github.com/kars85/fastapi-dls` @ tag `2.0.3` (`7346cf6`)
+  - `github.com/kars85/gridd-unlock-patcher` @ tag `1.1` (`16fb072`)
+  - submodules under `third_party/`, each with an `upstream` GitLab remote;
+    runbook in `third_party/UPSTREAM.md`.
 
-### Phase B — Reproducible server image
+### Phase B — Reproducible server image — ✅ DONE (commit `4f50481`)
 1. Resolve and record the digest of `collinwebdesigns/fastapi-dls:2.0.3`
    (`docker buildx imagetools inspect ...`).
 2. Make the image configurable in `lib/licensing.sh`:
    `FASTAPI_DLS_IMAGE="${FASTAPI_DLS_IMAGE:-collinwebdesigns/fastapi-dls@sha256:<digest>}"`.
-3. *(Optional)* CI in the `fastapi-dls` fork builds `ghcr.io/kars85/fastapi-dls:2.0.3`
-   from the pinned source for a fully self-owned supply chain.
-- **Acceptance:** `docker compose up` pulls a byte-stable image; digest recorded in repo.
+3. *(Optional — not done)* CI in the `fastapi-dls` fork builds
+   `ghcr.io/kars85/fastapi-dls:2.0.3` from the pinned source for a fully self-owned
+   supply chain. Left for later; the `FASTAPI_DLS_IMAGE` override already supports it.
+- **Acceptance:** `docker compose up` pulls a byte-stable image; digest recorded in
+  repo. ✅ Pinned `2.0.3@sha256:e5078363ef86548b41c998367dfa2641015c5b7ffb7b3db280332669f8b1b5f0`.
 
 ### Phase C — R595 / vGPU 20.x enablement (the actual "newer driver" work)
 1. **Server smoke test with your hardware:** deploy 2.0.3, point your T4 guest
@@ -119,21 +133,18 @@ as a pinned image rather than vendoring its source.**
 - **Acceptance:** a 595/vGPU-20 Linux **and** Windows guest reach
   "License acquired successfully" against the self-hosted DLS.
 
-### Phase D — Integrate into `proxmox-vgpu-installer`
-1. `lib/licensing.sh`:
-   - fix the gridd-unlock-patcher URL (`vgpu/...`), pin image (Phase B),
-   - after `compose up`, health-check `https://<ip>:<port>/-/health` (retry loop),
-   - emit the **root-cert fetch** into guest scripts:
-     `curl --insecure https://<ip>:<port>/-/config/root-certificate -o /tmp/dls-root.crt`,
-   - for R570/R580/R595 branches, generate a guest step that runs gridd-unlock-patcher
-     with that root cert before restarting `nvidia-gridd`.
-2. `data/driver_catalog.json`: add a `licensing` hint per branch
-   (`fastapi_dls_min_version`, `needs_gridd_unlock`) so the guest scripts are generated
-   from data, not hard-coded branch strings.
-3. Extend `tests/smoke.sh`: assert 18.x/19.x/20.x guest scripts include the root-cert
-   fetch + patcher step, and 16.x/17.x do not.
+### Phase D — Integrate into `proxmox-vgpu-installer` — mostly ✅ (done in commit `4f50481`)
+1. ✅ `lib/licensing.sh`: patcher URL fixed, image pinned, `/-/health` retry loop,
+   root-cert fetch into guest scripts, and gridd-unlock-patcher invocation for
+   R570/R580/R595 before restarting `nvidia-gridd`.
+2. ⬜ `data/driver_catalog.json`: add a `licensing` hint per branch
+   (`fastapi_dls_min_version`, `needs_gridd_unlock`) so guest scripts are generated
+   from data instead of the hard-coded `R570|R580|R595` case. *(still hard-coded)*
+3. ✅ `tests/smoke.sh`: asserts R580 guest scripts fetch the root cert + run the
+   patcher and R550 does not (52 checks total).
 - **Acceptance:** `./installer.sh license` on a 20.x host produces guest scripts that
-  license end-to-end with no manual steps beyond running them.
+  license end-to-end with no manual steps beyond running them. ⬜ *pending Phase C
+  hardware validation.*
 
 ### Phase E — Docs & maintenance
 1. README licensing section: self-host vs. NVIDIA NLS, the gridd-unlock-patcher
