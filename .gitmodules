@@ -1,0 +1,6 @@
+[submodule "third_party/fastapi-dls"]
+	path = third_party/fastapi-dls
+	url = https://github.com/kars85/fastapi-dls
+[submodule "third_party/gridd-unlock-patcher"]
+	path = third_party/gridd-unlock-patcher
+	url = https://github.com/kars85/gridd-unlock-patcher
