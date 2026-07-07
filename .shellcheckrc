@@ -1,0 +1,5 @@
+# shellcheck project config
+# Library modules are sourced, not executed; allow that pattern.
+external-sources=true
+# SC1091: don't follow sourced files during CI (paths resolved at runtime).
+disable=SC1091

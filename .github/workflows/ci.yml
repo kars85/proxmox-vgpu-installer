@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y shellcheck jq
+
+      - name: ShellCheck
+        run: shellcheck installer.sh lib/*.sh tools/*.sh tests/*.sh
+
+      - name: Validate JSON data
+        run: |
+          jq -e '.drivers | length > 0' data/driver_catalog.json
+          jq -e '.devices' data/profiles/curated.json
+
+      - name: Smoke tests
+        run: bash tests/smoke.sh

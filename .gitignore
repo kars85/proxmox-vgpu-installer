@@ -1,0 +1,17 @@
+# Runtime state / logs
+state.env
+config.txt
+debug.log
+
+# Downloaded proprietary NVIDIA blobs (never commit these)
+*.run
+*.run.bak
+*-custom.run
+*.zip
+
+# Cloned upstreams
+vgpu-proxmox/
+vgpu_unlock-rs/
+
+# Generated licensing artifacts
+licenses/

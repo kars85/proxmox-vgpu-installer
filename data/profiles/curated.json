@@ -1,0 +1,30 @@
+{
+  "_comment": "Curated vGPU profile tables keyed by NVIDIA device id (lowercase). This is a fallback used before a driver is installed. Regenerate/extend authoritative per-branch tables with tools/extract_profiles.sh, which parses vgpuConfig.xml out of each host .run package into data/profiles/<branch>.json. framebuffer_mb = per-instance VRAM; max_instances = concurrent vGPUs of that type on one physical GPU.",
+  "devices": {
+    "1eb8": {
+      "name": "Tesla T4",
+      "arch": "turing",
+      "total_fb_mb": 16384,
+      "path": "native",
+      "profiles": [
+        { "name": "T4-1Q",  "type": "Q", "framebuffer_mb": 1024,  "max_instances": 16, "class": "vDWS",  "max_heads": 4, "max_resolution": "5120x2880" },
+        { "name": "T4-2Q",  "type": "Q", "framebuffer_mb": 2048,  "max_instances": 8,  "class": "vDWS",  "max_heads": 4, "max_resolution": "7680x4320" },
+        { "name": "T4-4Q",  "type": "Q", "framebuffer_mb": 4096,  "max_instances": 4,  "class": "vDWS",  "max_heads": 4, "max_resolution": "7680x4320" },
+        { "name": "T4-8Q",  "type": "Q", "framebuffer_mb": 8192,  "max_instances": 2,  "class": "vDWS",  "max_heads": 4, "max_resolution": "7680x4320" },
+        { "name": "T4-16Q", "type": "Q", "framebuffer_mb": 16384, "max_instances": 1,  "class": "vDWS",  "max_heads": 4, "max_resolution": "7680x4320" },
+        { "name": "T4-1B",  "type": "B", "framebuffer_mb": 1024,  "max_instances": 16, "class": "vPC",   "max_heads": 4, "max_resolution": "5120x2880" },
+        { "name": "T4-2B",  "type": "B", "framebuffer_mb": 2048,  "max_instances": 8,  "class": "vPC",   "max_heads": 4, "max_resolution": "5120x2880" },
+        { "name": "T4-4C",  "type": "C", "framebuffer_mb": 4096,  "max_instances": 4,  "class": "vCS",   "max_heads": 1, "max_resolution": "4096x2160" },
+        { "name": "T4-8C",  "type": "C", "framebuffer_mb": 8192,  "max_instances": 2,  "class": "vCS",   "max_heads": 1, "max_resolution": "4096x2160" },
+        { "name": "T4-16C", "type": "C", "framebuffer_mb": 16384, "max_instances": 1,  "class": "vCS",   "max_heads": 1, "max_resolution": "4096x2160" },
+        { "name": "T4-16A", "type": "A", "framebuffer_mb": 16384, "max_instances": 1,  "class": "vApps", "max_heads": 1, "max_resolution": "1280x1024" }
+      ]
+    }
+  },
+  "_unlock_spoof_targets": {
+    "_comment": "For vgpu_unlock consumer cards, the exposed profile set is that of the spoofed enterprise card, keyed by architecture. Use these as the profile family a user should expect.",
+    "turing": { "spoof_as": "Quadro RTX 6000/8000 (TU102)", "family_prefix": "RTX6000" },
+    "pascal": { "spoof_as": "Tesla P40 / P4", "family_prefix": "P40" },
+    "maxwell": { "spoof_as": "Tesla M60 / M10", "family_prefix": "M60" }
+  }
+}

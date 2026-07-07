@@ -1,0 +1,12 @@
+# These run on a Linux (Proxmox) host — force LF so bash never sees CRLF.
+*.sh    text eol=lf
+*.json  text eol=lf
+*.csv   text eol=lf
+*.toml  text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+.shellcheckrc text eol=lf
+
+# Binary
+*.db    binary
+*.mp4   binary
