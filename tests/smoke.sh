@@ -65,6 +65,22 @@ DRIVER_RELEASE=18.4; _write_guest_license_scripts 10.0.0.5 8443 >/dev/null 2>&1
 check "no-url release: comment, no active dl" "grep -q 'NVIDIA vGPU' /tmp/vgpu-lic/licenses/license_linux.sh && ! grep -q 'curl -fSL' /tmp/vgpu-lic/licenses/license_linux.sh"
 check "no-url release: still licenses"        "grep -q 'client-token' /tmp/vgpu-lic/licenses/license_linux.sh"
 
+echo "== licensing: image pin + gridd automation =="
+check "image pinned by digest"         "grep -q 'fastapi-dls:2.0.3@sha256:' '$here/lib/licensing.sh'"
+check "image env-overridable"          "grep -q 'FASTAPI_DLS_IMAGE:-' '$here/lib/licensing.sh'"
+check "gridd url corrected (vgpu)"     "grep -q 'vgpu/gridd-unlock-patcher' '$here/lib/licensing.sh' && ! grep -q 'oscar.krause/gridd-unlock-patcher' '$here/lib/licensing.sh'"
+check "health check present"           "grep -q '/-/health' '$here/lib/licensing.sh'"
+# R580 (19.0) guest script must fetch root cert + patch gridd
+DRIVER_RELEASE=19.0; _write_guest_license_scripts 10.0.0.5 8443 >/dev/null 2>&1
+check "R580 linux: fetches root cert"  "grep -q 'root-certificate' /tmp/vgpu-lic/licenses/license_linux.sh"
+check "R580 linux: runs patcher"       "grep -q 'gridd-unlock-patcher' /tmp/vgpu-lic/licenses/license_linux.sh"
+check "R580 linux: patch cmd -g -c"    "grep -q -- '-g \"\$GRIDD_BIN\" -c /tmp/dls-root.pem' /tmp/vgpu-lic/licenses/license_linux.sh"
+check "R580 windows: dll guidance"     "grep -qi 'nvxdapix.dll' /tmp/vgpu-lic/licenses/license_windows.ps1"
+# R550 (17.x) guest script must NOT need gridd patching
+DRIVER_RELEASE=17.5; _write_guest_license_scripts 10.0.0.5 8443 >/dev/null 2>&1
+check "R550 linux: no gridd patch"     "! grep -q 'gridd-unlock-patcher' /tmp/vgpu-lic/licenses/license_linux.sh"
+check "R550 linux: still licenses"     "grep -q 'client-token' /tmp/vgpu-lic/licenses/license_linux.sh"
+
 echo ""
 echo "Passed: $pass  Failed: $fail"
 [ "$fail" -eq 0 ]
