@@ -1,6 +1,8 @@
 # FastAPI-DLS Licensing Plan — support newer vGPU drivers (R570 → R595)
 
 **Status:** In progress — Phase A ✅ · Phase B ✅ · Phase C pending (needs R595 hardware)
+**Backend decision (2026-07-08):** Stay on **self-hosted FastAPI-DLS**. Official NVIDIA
+DLS 3.6.1 was available (owner downloaded it) but declined; see §5.
 **Owner:** kars85 · **Author:** Claude Fable 5
 **Goal:** Make the self-hosted licensing path work reliably for vGPU **18.x/19.x**
 and the **20.x (R595)** branch your T4 host actually runs, and pin it into the
@@ -165,6 +167,7 @@ as a pinned image rather than vendoring its source.**
 | Docker on the PVE host | Keep opt-in (as now); document the LXC/VM alternative for the DLS container. |
 | Submodules vs. UPSTREAM.md | Submodules if you want it pinned in-tree; UPSTREAM.md if you prefer a lighter repo. |
 | 20.x still unverified upstream | Treat as "should work"; gate the compat-matrix row behind your own successful test. |
+| **FastAPI-DLS vs. official NVIDIA DLS 3.6.1** | **DECIDED (2026-07-08): keep FastAPI-DLS.** Owner has the official NLS 3.6.1 appliance (qcow2 + container) downloaded, which would license R570/R580/R595 natively with **no** gridd-unlock-patcher — but chose to stay on the self-hosted FastAPI-DLS path. Consequence: Phase C (R595 via gridd-unlock-patcher) remains the load-bearing open item; the official-DLS path is **not** being integrated. If R595 patching proves unworkable, the official DLS remains an unblocked escape hatch. |
 
 ## 6. Reference facts (verified July 2026)
 
