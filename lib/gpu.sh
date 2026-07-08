@@ -87,7 +87,7 @@ _classify_single() {
             No)     log_warn "$desc is NOT vGPU-capable." ;;
             *)      log_warn "$desc vGPU capability is unknown." ;;
         esac
-        [ -n "$notes" ] && log_warn "Note: $notes"
+        if [ -n "$notes" ]; then log_warn "Note: $notes"; fi
     else
         SELECTED_DESC="NVIDIA device $devid"; GPU_ARCH="unknown"; VGPU_SUPPORT="Unknown"
         log_warn "Device ID $devid not in database; capability unknown."

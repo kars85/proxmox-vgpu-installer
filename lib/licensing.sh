@@ -93,11 +93,42 @@ services:
 volumes:
   dls-db:
 EOF
-    run_command "Starting FastAPI-DLS (compose v2)" info docker compose -f "$compose_dir/docker-compose.yml" up -d
+    _free_licensing_port "$port"
+    run_command "Starting FastAPI-DLS (compose v2)" info \
+        docker compose -f "$compose_dir/docker-compose.yml" up -d --remove-orphans
 
     _wait_for_dls_health "$ip" "$port"
     _write_guest_license_scripts "$ip" "$port"
     _print_guest_licensing_guidance "$ip" "$port"
+}
+
+# Free the licensing port before starting: remove the legacy container from the old
+# script and any other container already publishing the chosen port. Prevents the
+# "Bind for 0.0.0.0:<port> failed: port is already allocated" failure.
+_free_licensing_port() {
+    local port="$1"
+    need_cmd docker || return 0
+
+    # Legacy container name from the pre-refactor script.
+    if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx 'wvthoog-fastapi-dls'; then
+        log_warn "Found legacy container 'wvthoog-fastapi-dls' (from the old script); it likely holds the port."
+        if ask_yes_no "Remove the legacy 'wvthoog-fastapi-dls' container?" y; then
+            ALLOW_FAIL=1 run_command "Removing legacy wvthoog-fastapi-dls" info docker rm -f -v wvthoog-fastapi-dls
+        fi
+    fi
+
+    # Any other running container publishing this host port.
+    local holder
+    holder="$(docker ps --format '{{.Names}}\t{{.Ports}}' 2>/dev/null \
+        | awk -v p=":${port}->" 'index($0,p){print $1}' | grep -vx 'fastapi-dls' | head -1)"
+    if [ -n "$holder" ]; then
+        log_warn "Container '${holder}' is already publishing port ${port}."
+        if ask_yes_no "Stop and remove '${holder}'?" n; then
+            ALLOW_FAIL=1 run_command "Removing ${holder}" info docker rm -f "$holder"
+        else
+            die "Port ${port} is in use by '${holder}'. Re-run and choose a different port, or free it first."
+        fi
+    fi
 }
 
 # Poll the container's /-/health endpoint after startup so failures surface here

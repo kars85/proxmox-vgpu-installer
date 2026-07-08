@@ -28,6 +28,11 @@ source "$here/lib/driver.sh"; source "$here/lib/sriov.sh"; source "$here/lib/pro
 PVE_MAJOR=9; KERNEL_VERSION="6.14.8-2-pve"
 
 check "T4 lookup -> native"        "gpu_db_lookup 1eb8 | grep -q '|native|'"
+# Regression: _classify_single must return 0 even when the GPU has no notes,
+# otherwise `set -e` at the call site aborts detection (crashed T4 install/profiles).
+( set -Eeuo pipefail; _classify_single 01:00.0 1eb8 >/dev/null 2>&1 )
+check "classify no-notes returns 0" "( set -Eeuo pipefail; _classify_single 01:00.0 1eb8 >/dev/null 2>&1 )"
+check "classify sets native support" "_classify_single 01:00.0 1eb8 >/dev/null 2>&1; [ \"\$VGPU_SUPPORT\" = Native ]"
 check "RTX2070S lookup -> unlock"  "gpu_db_lookup 1ed1 | grep -q '|unlock|'"
 check "unknown id -> nonzero"      "! gpu_db_lookup ffff"
 check "ver_ge 6.14>=6.2"           "ver_ge 6.14 6.2"
