@@ -123,6 +123,15 @@ as a pinned image rather than vendoring its source.**
   repo. ✅ Pinned `2.0.3@sha256:e5078363ef86548b41c998367dfa2641015c5b7ffb7b3db280332669f8b1b5f0`.
 
 ### Phase C — R595 / vGPU 20.x enablement (the actual "newer driver" work)
+> **De-risked 2026-07-08 (static verification, live handshake still pending).**
+> Extracted the real `/usr/bin/nvidia-gridd` from the `595.71.05` guest `.deb` and
+> confirmed both NLS root-CA certs that `gridd-unlock-patcher` 1.1 targets are present
+> (serials `IcPuKZE8…`, `SnRB0/9e…`) — the "certs not found" abort will not fire. The
+> FastAPI-DLS root cert (2081 B) fits the available patch span (4169 B, ~2 KB headroom).
+> `fastapi-dls:2.0.3` (pinned digest) verified locally: `/-/health` up,
+> `/-/config/root-certificate` valid PEM, `/-/client-token` a real RS256 JWT.
+> Remaining: run the patch+license handshake on the live 595 guest to confirm end-to-end.
+
 1. **Server smoke test with your hardware:** deploy 2.0.3, point your T4 guest
    (595.71.05) at it, and check whether a token is accepted *after* patching gridd.
 2. **gridd-unlock-patcher for R595:** confirm it recognizes the 595 `nvidia-gridd`
