@@ -113,13 +113,20 @@ CUDA, drop the frame-rate limiter, set resolution, or (advanced) resize the
 framebuffer. A commented template is seeded during unlock setup, and the override
 builder is also offered at the end of an unlock install.
 
-## Licensing note
+## Licensing — two backends
 
-FastAPI-DLS 2.x serves 16.x–19.x. **18.x and 19.x guests additionally require
-`gridd-unlock-patcher` inside the guest** before tokens are accepted. The installer
-writes `licenses/license_linux.sh` and `licenses/license_windows.ps1` for you; run
-them with `--install-driver` (Linux) / `-InstallDriver` (Windows) to also download
-and install the matching guest driver where the catalog has a pinned URL.
+**Self-hosted FastAPI-DLS** (`./installer.sh license`) — free, no entitlement needed.
+Serves 16.x–19.x; **18.x/19.x guests additionally require `gridd-unlock-patcher`**
+inside the guest before tokens are accepted (the generated `licenses/license_linux.sh`
+automates the root-cert fetch + patch). Run the guest scripts with `--install-driver`
+(Linux) / `-InstallDriver` (Windows) to also fetch the matching guest driver.
+
+**Official NVIDIA DLS 3.6.1** (`./installer.sh official-dls`) — requires a vGPU license
+entitlement, but licenses **R570/R580/R595 (vGPU 18/19/20) natively, with no
+gridd-unlock-patcher**. Stands up NVIDIA's container stack locally from a downloaded
+`nls-3.6.1-bios` package (proprietary images, never published). See
+[docs/OFFICIAL_DLS.md](docs/OFFICIAL_DLS.md) for the full runbook and the
+backend comparison table.
 
 ## SR-IOV persistence
 

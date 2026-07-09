@@ -35,7 +35,7 @@ GPU_ARCH="${GPU_ARCH:-}"
 SELECTED_PCI="${SELECTED_PCI:-}"
 
 # --- Load modules -----------------------------------------------------------
-for m in common detect repos gpu driver kernel unlock sriov profiles licensing; do
+for m in common detect repos gpu driver kernel unlock sriov profiles licensing official-dls; do
     # shellcheck source=/dev/null
     source "$LIB_DIR/${m}.sh"
 done
@@ -47,7 +47,7 @@ SUBCOMMAND=""
 parse_args() {
     while [ $# -gt 0 ]; do
         case "$1" in
-            install|upgrade|remove|download|license|profiles|override|menu) SUBCOMMAND="$1"; shift ;;
+            install|upgrade|remove|download|license|official-dls|profiles|override|menu) SUBCOMMAND="$1"; shift ;;
             --debug) DEBUG=true; shift ;;
             --yes|-y) ASSUME_YES=1; shift ;;
             --step) STEP="$2"; shift 2 ;;
@@ -69,7 +69,8 @@ Subcommands:
   upgrade     Replace the driver on an existing install.
   remove      Remove drivers, unlock, patches, and licensing.
   download    Fetch/verify a host driver only.
-  license     Configure the FastAPI-DLS licensing server.
+  license     Configure the FastAPI-DLS licensing server (self-hosted, unofficial).
+  official-dls Set up the OFFICIAL NVIDIA DLS 3.6.1 locally from a downloaded package.
   profiles    Show vGPU profiles a GPU supports (pre- or post-install).
   override    Create a vgpu_unlock profile override (TOML) for an mdev type.
   menu        Interactive menu (default when no subcommand given).
@@ -261,6 +262,8 @@ do_license() { banner; configure_licensing; }
 
 do_override() { banner; configure_profile_override; }
 
+do_official_dls() { banner; setup_official_dls; }
+
 do_profiles() {
     banner
     profiles_show "${SELECTED_DEVID:-}" "${DRIVER_RELEASE%%.*}"
@@ -274,10 +277,11 @@ do_menu() {
     echo "  2) Upgrade vGPU installation (replace driver)"
     echo "  3) Remove vGPU installation"
     echo "  4) Download vGPU driver only"
-    echo "  5) Configure licensing (FastAPI-DLS)"
-    echo "  6) Show vGPU profiles for a GPU"
-    echo "  7) Create vgpu_unlock profile override"
-    echo "  8) Exit"
+    echo "  5) Configure licensing (FastAPI-DLS, self-hosted)"
+    echo "  6) Configure OFFICIAL NVIDIA DLS 3.6.1 (local, from downloaded package)"
+    echo "  7) Show vGPU profiles for a GPU"
+    echo "  8) Create vgpu_unlock profile override"
+    echo "  9) Exit"
     echo ""
     local c; c="$(ask_value 'Enter your choice' '1')"
     case "$c" in
@@ -286,9 +290,10 @@ do_menu() {
         3) do_remove ;;
         4) do_download ;;
         5) do_license ;;
-        6) do_profiles ;;
-        7) do_override ;;
-        8) log_info "Bye."; exit 0 ;;
+        6) do_official_dls ;;
+        7) do_profiles ;;
+        8) do_override ;;
+        9) log_info "Bye."; exit 0 ;;
         *) die "Invalid choice: $c" ;;
     esac
 }
@@ -308,6 +313,7 @@ main() {
         remove)   do_remove ;;
         download) do_download ;;
         license)  do_license ;;
+        official-dls) do_official_dls ;;
         profiles) do_profiles ;;
         override) do_override ;;
         menu|"")

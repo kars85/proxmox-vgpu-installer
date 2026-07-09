@@ -86,6 +86,19 @@ DRIVER_RELEASE=17.5; _write_guest_license_scripts 10.0.0.5 8443 >/dev/null 2>&1
 check "R550 linux: no gridd patch"     "! grep -q 'gridd-unlock-patcher' /tmp/vgpu-lic/licenses/license_linux.sh"
 check "R550 linux: still licenses"     "grep -q 'client-token' /tmp/vgpu-lic/licenses/license_linux.sh"
 
+echo "== official DLS backend =="
+source "$here/lib/official-dls.sh"
+check "official module loads"          "declare -f setup_official_dls >/dev/null"
+check "official env vars documented"   "grep -q 'DLS_PRIVATE_HOSTNAME' '$here/lib/official-dls.sh'"
+check "official images not pushed"     "! grep -qiE 'docker push|hub.docker' '$here/lib/official-dls.sh'"
+# Official guest scripts must NOT patch gridd (natively trusted) but must install a token.
+export VGPU_DIR="/tmp/vgpu-off"; rm -rf "$VGPU_DIR"; mkdir -p "$VGPU_DIR"
+_write_official_guest_scripts 10.0.0.5 443 >/dev/null 2>&1
+check "official linux: no patch invoke" "! grep -qE 'root-certificate|patcher +-g' /tmp/vgpu-off/licenses/license_official_linux.sh"
+check "official linux: installs token" "grep -q 'ClientConfigToken' /tmp/vgpu-off/licenses/license_official_linux.sh"
+check "official windows script exists" "[ -f /tmp/vgpu-off/licenses/license_official_windows.ps1 ]"
+check "installer wires official-dls"   "grep -q 'do_official_dls' '$here/installer.sh' && grep -q 'official-dls) do_official_dls' '$here/installer.sh'"
+
 echo ""
 echo "Passed: $pass  Failed: $fail"
 [ "$fail" -eq 0 ]
